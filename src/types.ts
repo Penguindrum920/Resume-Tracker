@@ -18,6 +18,8 @@ export type ApplicationStatus =
 export type ProfileRow = {
   id: string;
   full_name: string;
+  username: string | null;
+  email: string | null;
   role: string | null;
   location: string | null;
   created_at: string;
@@ -51,6 +53,8 @@ export type Database = {
         Insert: {
           id: string;
           full_name: string;
+          username?: string | null;
+          email?: string | null;
           role?: string | null;
           location?: string | null;
         };
@@ -80,7 +84,12 @@ export type Database = {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_email_by_username: {
+        Args: { username_input: string };
+        Returns: string;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

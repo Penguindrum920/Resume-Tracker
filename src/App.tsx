@@ -25,8 +25,8 @@ import type { ApplicationFormState } from "./lib/validation";
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [authForm, setAuthForm] = useState({ fullName: "", email: "", password: "" });
+  const [authMode, setAuthMode] = useState<"signin" | "signup" | "reset">("signin");
+  const [authForm, setAuthForm] = useState({ fullName: "", username: "", email: "", password: "" });
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingApp, setEditingApp] = useState<ApplicationRow | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -111,16 +111,54 @@ function App() {
         notice=""
         setAuthForm={setAuthForm}
         setAuthMode={setAuthMode}
+        onForgotPassword={() => {
+          setAuthMode("reset");
+          setAuthForm((current) => ({ ...current, password: "" }));
+        }}
         onSubmit={async (e) => {
           e.preventDefault();
           if (!supabase) return;
-          const creds = { email: authForm.email.trim(), password: authForm.password };
+
+          if (authMode === "reset") {
+            const { error } = await supabase.auth.resetPasswordForEmail(authForm.email.trim(), {
+              redirectTo: window.location.origin,
+            });
+            if (error) {
+              toast.error(error.message);
+            } else {
+              toast.success("Password reset email sent. Check your inbox.");
+              setAuthMode("signin");
+            }
+            return;
+          }
+
+          let loginEmail = authForm.email.trim();
+          const isUsername = authMode === "signin" && !loginEmail.includes("@");
+
+          if (isUsername) {
+            const { data: lookup, error: lookupErr } = await supabase.rpc(
+              "get_email_by_username",
+              { username_input: loginEmail.toLowerCase() },
+            );
+            if (lookupErr || !lookup) {
+              toast.error("No account found with that username.");
+              return;
+            }
+            loginEmail = lookup as string;
+          }
+
+          const creds = { email: loginEmail, password: authForm.password };
           const result =
             authMode === "signin"
               ? await supabase.auth.signInWithPassword(creds)
               : await supabase.auth.signUp({
                   ...creds,
-                  options: { data: { full_name: authForm.fullName.trim() } },
+                  options: {
+                    data: {
+                      full_name: authForm.fullName.trim(),
+                      username: authForm.username.toLowerCase(),
+                    },
+                  },
                 });
           if (result.error) {
             toast.error(result.error.message);
@@ -130,6 +168,8 @@ function App() {
             await supabase.from("profiles").upsert({
               id: result.data.user.id,
               full_name: authForm.fullName.trim() || authForm.email.trim().split("@")[0],
+              username: authForm.username.toLowerCase(),
+              email: authForm.email.trim().toLowerCase(),
             });
           }
           if (!result.data.session && authMode === "signup") {
@@ -316,6 +356,15 @@ function DashboardView({
             onChange={(e) => apps.setQuery(e.target.value)}
             placeholder="Search companies, roles, packages, notes..."
           />
+          {apps.query && (
+            <button
+              className="search-clear"
+              onClick={() => apps.setQuery("")}
+              aria-label="Clear search"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
         </div>
       </header>
 

@@ -1,6 +1,7 @@
 import { FormEvent } from "react";
 import {
   BriefcaseBusiness,
+  Check,
   LogOut,
   UserRound,
 } from "lucide-react";
@@ -30,6 +31,8 @@ export function Sidebar({
   busy: boolean;
   email: string;
 }) {
+  const profileSaved = profile !== null;
+
   return (
     <aside className="rail">
       <div>
@@ -81,10 +84,17 @@ export function Sidebar({
               placeholder="Remote / Bengaluru"
             />
           </label>
-          <button className="button secondary" type="submit" disabled={busy}>
-            <UserRound size={16} />
-            Save Profile
-          </button>
+          {profileSaved ? (
+            <div className="profile-saved-badge">
+              <Check size={16} />
+              Profile saved
+            </div>
+          ) : (
+            <button className="button secondary" type="submit" disabled={busy}>
+              <UserRound size={16} />
+              Save Profile
+            </button>
+          )}
         </form>
       </div>
 
