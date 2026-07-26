@@ -22,10 +22,6 @@ export function validateApplicationForm(form: ApplicationFormState) {
     errors.company = "Company name is required.";
   }
 
-  if (!form.appliedOn) {
-    errors.appliedOn = "Applied date is required.";
-  }
-
   if (form.deadline && form.appliedOn && form.deadline < form.appliedOn) {
     errors.deadline = "Deadline cannot be before the applied date.";
   }

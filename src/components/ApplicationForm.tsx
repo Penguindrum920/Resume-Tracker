@@ -120,9 +120,8 @@ export function ApplicationForm({
         )}
       </label>
       <label className={errors.appliedOn ? "has-error" : ""}>
-        Applied on *
+        Applied on
         <input
-          required
           type="date"
           value={form.appliedOn}
           onChange={(e) => update("appliedOn", e.target.value)}
