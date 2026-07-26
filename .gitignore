@@ -1,0 +1,10 @@
+node_modules
+dist
+.env
+.env.local
+.DS_Store
+*.local
+*.tsbuildinfo
+.dev-server.pid
+dev-server.out.log
+dev-server.err.log
