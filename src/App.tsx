@@ -32,6 +32,8 @@ function App() {
   const [showForm, setShowForm] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApplicationRow | null>(null);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
 
   const { theme, toggleTheme } = useTheme();
   const toast = useToast();
@@ -52,8 +54,11 @@ function App() {
       setSession(data.session);
       setAuthLoading(false);
     });
-    const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      if (event === "PASSWORD_RECOVERY") {
+        setShowPasswordReset(true);
+      }
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -300,6 +305,63 @@ function App() {
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteTarget(null)}
         />
+      )}
+
+      {showPasswordReset && (
+        <div className="dialog-overlay" onClick={() => setShowPasswordReset(false)}>
+          <section
+            className="dialog-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 style={{ marginBottom: 8 }}>Set New Password</h2>
+            <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 20 }}>
+              Enter your new password below.
+            </p>
+            <form
+              className="auth-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                if (!supabase || newPassword.length < 6) return;
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) {
+                  toast.error(error.message);
+                } else {
+                  toast.success("Password updated. You can now use it to sign in.");
+                  setShowPasswordReset(false);
+                  setNewPassword("");
+                }
+              }}
+            >
+              <label>
+                New Password
+                <input
+                  required
+                  type="password"
+                  minLength={6}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Minimum 6 characters"
+                  autoFocus
+                />
+              </label>
+              <div className="dialog-actions">
+                <button className="button primary" type="submit" disabled={newPassword.length < 6}>
+                  Update Password
+                </button>
+                <button
+                  className="button secondary"
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordReset(false);
+                    setNewPassword("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
       )}
     </main>
   );
