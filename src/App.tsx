@@ -90,18 +90,23 @@ function App() {
       const meta = session.user.user_metadata ?? {};
 
       if (!profileData) {
-        const { data: created } = await supabase
+        const insertPayload = {
+          id: session.user.id,
+          full_name: pending?.full_name || meta.full_name || session.user.email?.split("@")[0] || "User",
+          username: pending?.username || meta.username || null,
+          email: pending?.email || session.user.email || null,
+        };
+        const { data: created, error: insertErr } = await supabase
           .from("profiles")
-          .upsert({
-            id: session.user.id,
-            full_name: pending?.full_name || meta.full_name || session.user.email?.split("@")[0] || "User",
-            username: pending?.username || meta.username || null,
-            email: pending?.email || session.user.email || null,
-          })
+          .insert(insertPayload)
           .select("*")
           .single();
+        if (insertErr) {
+          console.error("Profile insert failed:", insertErr.message);
+          return;
+        }
         profileData = created;
-      } else {
+      } else if (!profileData.username || !profileData.email) {
         const patch: { username?: string; email?: string; full_name?: string } = {};
         const newUsername = pending?.username || meta.username || undefined;
         const newEmail = pending?.email || session.user.email || undefined;
@@ -110,13 +115,17 @@ function App() {
         if (newEmail && !profileData.email) patch.email = newEmail;
         if (newFullName && !profileData.full_name) patch.full_name = newFullName;
         if (Object.keys(patch).length > 0) {
-          const { data: updated } = await supabase
+          const { data: updated, error: updateErr } = await supabase
             .from("profiles")
             .update(patch)
             .eq("id", session.user.id)
             .select("*")
             .single();
-          if (updated) profileData = updated;
+          if (updateErr) {
+            console.error("Profile update failed:", updateErr.message);
+          } else if (updated) {
+            profileData = updated;
+          }
         }
       }
 
