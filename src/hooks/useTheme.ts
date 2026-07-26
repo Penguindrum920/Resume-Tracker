@@ -21,7 +21,7 @@ function getStoredTheme(): Theme | null {
 
 export function useTheme() {
   const [theme, setTheme] = useState<Theme>(() => {
-    return getStoredTheme() ?? getSystemPreference();
+    return getStoredTheme() ?? "light";
   });
 
   useEffect(() => {
@@ -30,18 +30,6 @@ export function useTheme() {
       localStorage.setItem(STORAGE_KEY, theme);
     } catch {}
   }, [theme]);
-
-  useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const handler = (event: MediaQueryListEvent) => {
-      const stored = getStoredTheme();
-      if (!stored) {
-        setTheme(event.matches ? "dark" : "light");
-      }
-    };
-    media.addEventListener("change", handler);
-    return () => media.removeEventListener("change", handler);
-  }, []);
 
   const toggleTheme = useCallback(() => {
     setTheme((current) => (current === "light" ? "dark" : "light"));
