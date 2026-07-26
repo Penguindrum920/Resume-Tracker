@@ -188,12 +188,14 @@ function App() {
             return;
           }
           if (authMode === "signup" && result.data.user) {
-            await supabase.from("profiles").upsert({
-              id: result.data.user.id,
-              full_name: authForm.fullName.trim() || authForm.email.trim().split("@")[0],
-              username: authForm.username.toLowerCase(),
-              email: authForm.email.trim().toLowerCase(),
-            });
+            if (result.data.session) {
+              await supabase.from("profiles").upsert({
+                id: result.data.user.id,
+                full_name: authForm.fullName.trim() || authForm.email.trim().split("@")[0],
+                username: authForm.username.toLowerCase(),
+                email: authForm.email.trim().toLowerCase(),
+              });
+            }
           }
           if (!result.data.session && authMode === "signup") {
             toast.info("Check your email to confirm, then sign in.");
