@@ -82,13 +82,14 @@ function App() {
 
       let profileData = profileResult.data;
 
+      let pending: { full_name: string; username: string; email: string } | null = null;
+      try {
+        const raw = localStorage.getItem("resume-tracker-pending-profile");
+        if (raw) { pending = JSON.parse(raw); localStorage.removeItem("resume-tracker-pending-profile"); }
+      } catch {}
+      const meta = session.user.user_metadata ?? {};
+
       if (!profileData) {
-        let pending: { full_name: string; username: string; email: string } | null = null;
-        try {
-          const raw = localStorage.getItem("resume-tracker-pending-profile");
-          if (raw) { pending = JSON.parse(raw); localStorage.removeItem("resume-tracker-pending-profile"); }
-        } catch {}
-        const meta = session.user.user_metadata ?? {};
         const { data: created } = await supabase
           .from("profiles")
           .upsert({
@@ -100,6 +101,18 @@ function App() {
           .select("*")
           .single();
         profileData = created;
+      } else if (!profileData.username || !profileData.email) {
+        const { data: updated } = await supabase
+          .from("profiles")
+          .update({
+            username: profileData.username || pending?.username || meta.username || null,
+            email: profileData.email || pending?.email || session.user.email || null,
+            full_name: profileData.full_name || pending?.full_name || meta.full_name || null,
+          })
+          .eq("id", session.user.id)
+          .select("*")
+          .single();
+        if (updated) profileData = updated;
       }
 
       if (profileData) {
