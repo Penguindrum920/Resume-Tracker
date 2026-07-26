@@ -7,6 +7,7 @@ import {
   FileImage,
   FileText,
   Package,
+  Send,
   Trash2,
 } from "lucide-react";
 import type { ApplicationRow } from "../types";
@@ -36,20 +37,7 @@ export function ApplicationCard({
           <strong>{application.company}</strong>
           <small>{application.job_title || "Role not specified"}</small>
         </div>
-        <div className="card-actions">
-          {application.google_form_link && (
-            <a
-              className="card-link-btn"
-              href={application.google_form_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              title="Open Application Form"
-            >
-              <ExternalLink size={14} />
-            </a>
-          )}
-        </div>
+        <div className="card-actions" />
       </div>
 
       <div className="card-meta">
@@ -77,6 +65,18 @@ export function ApplicationCard({
       </div>
 
       <div className="card-footer">
+        {application.google_form_link && (
+          <a
+            className="card-apply-btn"
+            href={application.google_form_link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Send size={13} />
+            Apply
+          </a>
+        )}
         {application.google_form_screenshot_path && (
           <button
             className="card-file-btn"

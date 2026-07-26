@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import type { ApplicationRow, ApplicationStatus } from "../types";
+import type { ApplicationRow, ApplicationStatus, Database } from "../types";
 import { isSupabaseConfigured, storageBucket, supabase } from "../lib/supabase";
 import type { ApplicationFilters, ApplicationSort } from "../lib/applicationUtils";
 import { emptyFilters, filterAndSortApplications } from "../lib/applicationUtils";
 import { getDeadlineReminders } from "../lib/deadlines";
 import type { DeadlineReminder } from "../lib/deadlines";
+
+type AppInsert = Database["public"]["Tables"]["applications"]["Insert"];
+type AppUpdate = Database["public"]["Tables"]["applications"]["Update"];
 
 export function useApplications(session: Session | null) {
   const [applications, setApplications] = useState<ApplicationRow[]>([]);
@@ -93,29 +96,54 @@ export function useApplications(session: Session | null) {
           resumePath = await uploadFile(session.user.id, id, files.resume, "resume");
         }
 
-        const { data, error } = await supabase
+        const payload: AppInsert = {
+          id,
+          user_id: session.user.id,
+          company: form.company.trim(),
+          job_title: form.jobTitle.trim() || null,
+          package_offered: form.packageOffered.trim() || null,
+          applied_on: form.appliedOn || new Date().toISOString().slice(0, 10),
+          deadline: form.deadline || null,
+          google_form_link: form.googleFormLink.trim() || null,
+          offer_type: form.offerType as ApplicationRow["offer_type"],
+          status: "applied",
+          job_description: form.jobDescription.trim() || "",
+          google_form_screenshot_path: screenshotPath,
+          resume_path: resumePath,
+          notes: form.notes.trim() || null,
+        };
+
+        let { data, error } = await supabase
           .from("applications")
-          .insert({
+          .insert(payload)
+          .select("*")
+          .single();
+
+        if (error && /column.*not (found|exist)|could not find|does not exist|schema cache/i.test(error.message)) {
+          const fallback: AppInsert = {
             id,
             user_id: session.user.id,
             company: form.company.trim(),
             job_title: form.jobTitle.trim() || null,
-            package_offered: form.packageOffered.trim() || null,
             applied_on: form.appliedOn || new Date().toISOString().slice(0, 10),
-            deadline: form.deadline || null,
-            google_form_link: form.googleFormLink.trim() || null,
             offer_type: form.offerType as ApplicationRow["offer_type"],
             status: "applied",
             job_description: form.jobDescription.trim() || "",
             google_form_screenshot_path: screenshotPath,
             resume_path: resumePath,
             notes: form.notes.trim() || null,
-          })
-          .select("*")
-          .single();
+          };
+          const retry = await supabase
+            .from("applications")
+            .insert(fallback)
+            .select("*")
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
 
         if (error) throw error;
-        setApplications((current) => [data, ...current]);
+        setApplications((current) => [data!, ...current]);
         setBusy(false);
         return { data, error: null };
       } catch (err) {
@@ -151,26 +179,48 @@ export function useApplications(session: Session | null) {
       setBusy(true);
 
       try {
-        const { data, error } = await supabase
+        const updatePayload: AppUpdate = {
+          company: form.company.trim(),
+          job_title: form.jobTitle.trim() || null,
+          package_offered: form.packageOffered.trim() || null,
+          applied_on: form.appliedOn || new Date().toISOString().slice(0, 10),
+          deadline: form.deadline || null,
+          google_form_link: form.googleFormLink.trim() || null,
+          offer_type: form.offerType as ApplicationRow["offer_type"],
+          status: form.status,
+          job_description: form.jobDescription.trim() || "",
+          notes: form.notes.trim() || null,
+        };
+
+        let { data, error } = await supabase
           .from("applications")
-          .update({
-            company: form.company.trim(),
-            job_title: form.jobTitle.trim() || null,
-            package_offered: form.packageOffered.trim() || null,
-            applied_on: form.appliedOn || new Date().toISOString().slice(0, 10),
-            deadline: form.deadline || null,
-            google_form_link: form.googleFormLink.trim() || null,
-            offer_type: form.offerType as ApplicationRow["offer_type"],
-            status: form.status,
-            job_description: form.jobDescription.trim() || "",
-            notes: form.notes.trim() || null,
-          })
+          .update(updatePayload)
           .eq("id", id)
           .select("*")
           .single();
 
+        if (error && /column.*not (found|exist)|could not find|does not exist|schema cache/i.test(error.message)) {
+          const fallback: AppUpdate = {
+            company: form.company.trim(),
+            job_title: form.jobTitle.trim() || null,
+            applied_on: form.appliedOn || new Date().toISOString().slice(0, 10),
+            offer_type: form.offerType as ApplicationRow["offer_type"],
+            status: form.status,
+            job_description: form.jobDescription.trim() || "",
+            notes: form.notes.trim() || null,
+          };
+          const retry = await supabase
+            .from("applications")
+            .update(fallback)
+            .eq("id", id)
+            .select("*")
+            .single();
+          data = retry.data;
+          error = retry.error;
+        }
+
         if (error) throw error;
-        setApplications((current) => current.map((a) => (a.id === data.id ? data : a)));
+        setApplications((current) => current.map((a) => (a.id === data!.id ? data! : a)));
         setBusy(false);
         return { data, error: null };
       } catch (err) {

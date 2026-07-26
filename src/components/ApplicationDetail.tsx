@@ -5,6 +5,7 @@ import {
   FileText,
   Package,
   Pencil,
+  Send,
   Trash2,
 } from "lucide-react";
 import type { ApplicationRow, ApplicationStatus } from "../types";
@@ -72,8 +73,8 @@ export function ApplicationDetail({
           target="_blank"
           rel="noopener noreferrer"
         >
-          <ExternalLink size={16} />
-          Open Application Form
+          <Send size={16} />
+          Apply Now
         </a>
       )}
 
@@ -137,7 +138,7 @@ export function ApplicationDetail({
           }
         >
           <FileImage size={18} />
-          <span>Google form</span>
+          <span>Screenshot</span>
           <ExternalLink size={16} />
         </button>
         <button

@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   CheckCircle,
   ClipboardPaste,
+  FileImage,
   FileText,
   Sparkles,
   X,
@@ -27,6 +28,8 @@ export function QuickAddSection({
   const [parsed, setParsed] = useState<ParsedApplication | null>(null);
   const [editForm, setEditForm] = useState<ApplicationFormState | null>(null);
   const [saved, setSaved] = useState(false);
+  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   function handleParse() {
     if (!rawMessage.trim()) return;
@@ -60,12 +63,17 @@ export function QuickAddSection({
 
   async function handleConfirm() {
     if (!editForm) return;
-    const result = await onCreateApplication(editForm, {});
+    const result = await onCreateApplication(editForm, {
+      screenshot: screenshotFile,
+      resume: resumeFile,
+    });
     if (!result.error) {
       setSaved(true);
       setRawMessage("");
       setParsed(null);
       setEditForm(null);
+      setScreenshotFile(null);
+      setResumeFile(null);
     }
   }
 
@@ -197,6 +205,20 @@ export function QuickAddSection({
                 rows={4}
               />
             </label>
+            <QuickAddFilePicker
+              icon={<FileImage size={17} />}
+              label="Google form screenshot"
+              file={screenshotFile}
+              accept="image/*"
+              onChange={setScreenshotFile}
+            />
+            <QuickAddFilePicker
+              icon={<FileText size={17} />}
+              label="Resume sent"
+              file={resumeFile}
+              accept=".pdf,.doc,.docx"
+              onChange={setResumeFile}
+            />
             <div className="form-actions">
               <button className="button primary" type="submit" disabled={busy}>
                 <CheckCircle size={16} />
@@ -207,5 +229,36 @@ export function QuickAddSection({
         </div>
       )}
     </section>
+  );
+}
+
+function QuickAddFilePicker({
+  icon,
+  label,
+  file,
+  accept,
+  onChange,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  file: File | null;
+  accept: string;
+  onChange: (file: File | null) => void;
+}) {
+  const id = `qa-${label.replace(/\s+/g, "-").toLowerCase()}`;
+  return (
+    <label className="file-picker span-2" htmlFor={id}>
+      <span>
+        {icon}
+        {label}
+      </span>
+      <strong>{file ? file.name : "Choose file"}</strong>
+      <input
+        id={id}
+        type="file"
+        accept={accept}
+        onChange={(e) => onChange(e.target.files?.[0] ?? null)}
+      />
+    </label>
   );
 }
