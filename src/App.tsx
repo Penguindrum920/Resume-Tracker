@@ -102,10 +102,11 @@ function App() {
           .select("*")
           .single();
         if (insertErr) {
-          console.error("Profile insert failed:", insertErr.message);
-          return;
+          toast.error("Profile create failed: " + insertErr.message);
+          console.error("Profile insert failed:", insertErr);
+        } else {
+          profileData = created;
         }
-        profileData = created;
       } else if (!profileData.username || !profileData.email) {
         const patch: { username?: string; email?: string; full_name?: string } = {};
         const newUsername = pending?.username || meta.username || undefined;
@@ -263,6 +264,8 @@ function App() {
       .upsert({
         id: session.user.id,
         full_name: fullName,
+        username: profile?.username || session.user.user_metadata?.username || null,
+        email: profile?.email || session.user.email || null,
         role: profileForm.role.trim() || null,
         location: profileForm.location.trim() || null,
       })
