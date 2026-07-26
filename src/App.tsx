@@ -167,7 +167,11 @@ function App() {
               toast.error("No account found with that username.");
               return;
             }
-            loginEmail = lookup as string;
+            loginEmail = Array.isArray(lookup) ? lookup[0] : (lookup as string);
+            if (!loginEmail) {
+              toast.error("No account found with that username.");
+              return;
+            }
           }
 
           const creds = { email: loginEmail, password: authForm.password };
