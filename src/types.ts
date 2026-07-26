@@ -89,6 +89,15 @@ export type Database = {
         Args: { username_input: string };
         Returns: string;
       };
+      create_profile: {
+        Args: {
+          user_id: string;
+          p_full_name: string;
+          p_username?: string | null;
+          p_email?: string | null;
+        };
+        Returns: ProfileRow;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

@@ -90,43 +90,31 @@ function App() {
       const meta = session.user.user_metadata ?? {};
 
       if (!profileData) {
-        const insertPayload = {
-          id: session.user.id,
-          full_name: pending?.full_name || meta.full_name || session.user.email?.split("@")[0] || "User",
-          username: pending?.username || meta.username || null,
-          email: pending?.email || session.user.email || null,
-        };
-        const { data: created, error: insertErr } = await supabase
-          .from("profiles")
-          .insert(insertPayload)
-          .select("*")
-          .single();
-        if (insertErr) {
-          toast.error("Profile create failed: " + insertErr.message);
-          console.error("Profile insert failed:", insertErr);
+        const fullName = pending?.full_name || meta.full_name || session.user.email?.split("@")[0] || "User";
+        const username = pending?.username || meta.username || null;
+        const email = pending?.email || session.user.email || null;
+        const { data: created, error: rpcErr } = await supabase.rpc("create_profile", {
+          user_id: session.user.id,
+          p_full_name: fullName,
+          p_username: username,
+          p_email: email,
+        });
+        if (rpcErr) {
+          toast.error("Profile create failed: " + rpcErr.message);
         } else {
           profileData = created;
         }
       } else if (!profileData.username || !profileData.email) {
-        const patch: { username?: string; email?: string; full_name?: string } = {};
-        const newUsername = pending?.username || meta.username || undefined;
-        const newEmail = pending?.email || session.user.email || undefined;
-        const newFullName = pending?.full_name || meta.full_name || undefined;
-        if (newUsername && !profileData.username) patch.username = newUsername;
-        if (newEmail && !profileData.email) patch.email = newEmail;
-        if (newFullName && !profileData.full_name) patch.full_name = newFullName;
-        if (Object.keys(patch).length > 0) {
-          const { data: updated, error: updateErr } = await supabase
-            .from("profiles")
-            .update(patch)
-            .eq("id", session.user.id)
-            .select("*")
-            .single();
-          if (updateErr) {
-            console.error("Profile update failed:", updateErr.message);
-          } else if (updated) {
-            profileData = updated;
-          }
+        const { data: updated, error: updateErr } = await supabase.rpc("create_profile", {
+          user_id: session.user.id,
+          p_full_name: profileData.full_name,
+          p_username: profileData.username || pending?.username || meta.username || null,
+          p_email: profileData.email || pending?.email || session.user.email || null,
+        });
+        if (updateErr) {
+          toast.error("Profile update failed: " + updateErr.message);
+        } else if (updated) {
+          profileData = updated;
         }
       }
 
@@ -259,26 +247,30 @@ function App() {
     e.preventDefault();
     if (!supabase || !session) return;
     const fullName = profileForm.fullName.trim() || session.user.email?.split("@")[0] || "User";
-    const { data, error } = await supabase
-      .from("profiles")
-      .upsert({
-        id: session.user.id,
-        full_name: fullName,
-        username: profile?.username || session.user.user_metadata?.username || null,
-        email: profile?.email || session.user.email || null,
-        role: profileForm.role.trim() || null,
-        location: profileForm.location.trim() || null,
-      })
-      .select("*")
-      .single();
+    const { data, error } = await supabase.rpc("create_profile", {
+      user_id: session.user.id,
+      p_full_name: fullName,
+      p_username: profile?.username || session.user.user_metadata?.username || null,
+      p_email: profile?.email || session.user.email || null,
+    });
     if (error) {
       toast.error(error.message);
     } else {
-      setProfile(data);
+      const { data: roleUpdate } = await supabase
+        .from("profiles")
+        .update({
+          role: profileForm.role.trim() || null,
+          location: profileForm.location.trim() || null,
+        })
+        .eq("id", session.user.id)
+        .select("*")
+        .single();
+      const saved = roleUpdate ?? data;
+      setProfile(saved);
       setProfileForm({
-        fullName: data.full_name,
-        role: data.role ?? "",
-        location: data.location ?? "",
+        fullName: saved.full_name,
+        role: saved.role ?? "",
+        location: saved.location ?? "",
       });
       toast.success("Profile saved.");
     }
