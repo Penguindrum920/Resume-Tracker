@@ -1,15 +1,11 @@
 import { FormEvent } from "react";
 import {
   BriefcaseBusiness,
-  LayoutDashboard,
   LogOut,
-  MessageSquarePlus,
   UserRound,
 } from "lucide-react";
 import type { ProfileRow } from "../types";
 import { ThemeToggle } from "./ThemeToggle";
-
-type View = "dashboard" | "quickadd";
 
 export function Sidebar({
   profile,
@@ -17,8 +13,6 @@ export function Sidebar({
   setProfileForm,
   onSaveProfile,
   onSignOut,
-  view,
-  setView,
   theme,
   toggleTheme,
   busy,
@@ -31,8 +25,6 @@ export function Sidebar({
   >;
   onSaveProfile: (e: FormEvent<HTMLFormElement>) => void;
   onSignOut: () => void;
-  view: View;
-  setView: (v: View) => void;
   theme: "light" | "dark";
   toggleTheme: () => void;
   busy: boolean;
@@ -45,23 +37,6 @@ export function Sidebar({
           <BriefcaseBusiness size={18} />
           <span>Resume Tracker</span>
         </div>
-
-        <nav className="nav-section">
-          <button
-            className={`nav-item ${view === "dashboard" ? "active" : ""}`}
-            onClick={() => setView("dashboard")}
-          >
-            <LayoutDashboard size={17} />
-            Dashboard
-          </button>
-          <button
-            className={`nav-item ${view === "quickadd" ? "active" : ""}`}
-            onClick={() => setView("quickadd")}
-          >
-            <MessageSquarePlus size={17} />
-            Quick Add
-          </button>
-        </nav>
 
         <form className="profile-panel" onSubmit={onSaveProfile}>
           <div className="avatar" aria-hidden="true">

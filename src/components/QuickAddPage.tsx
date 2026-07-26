@@ -1,29 +1,27 @@
 import { useState } from "react";
 import {
-  ArrowLeft,
   CheckCircle,
   ClipboardPaste,
   FileText,
   Sparkles,
+  X,
 } from "lucide-react";
 import { parsePlacementMessage, type ParsedApplication } from "../lib/placementParser";
 import { offerTypes, offerTypeLabels } from "../types";
 import { todayInputValue } from "../lib/deadlines";
 import type { ApplicationFormState } from "../lib/validation";
 
-type View = "dashboard" | "quickadd";
-
-export function QuickAddPage({
-  onBack,
+export function QuickAddSection({
   onCreateApplication,
   busy,
+  onClose,
 }: {
-  onBack: () => void;
   onCreateApplication: (
     form: ApplicationFormState,
     files: { screenshot?: File | null; resume?: File | null },
   ) => Promise<{ error: string | null }>;
   busy: boolean;
+  onClose: () => void;
 }) {
   const [rawMessage, setRawMessage] = useState("");
   const [parsed, setParsed] = useState<ParsedApplication | null>(null);
@@ -76,19 +74,16 @@ export function QuickAddPage({
   }
 
   return (
-    <section className="workspace quickadd-page">
-      <header className="topbar">
-        <div>
-          <button className="text-button back-btn" onClick={onBack}>
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </button>
-          <h1>Quick Add</h1>
-          <p className="topbar-subtitle">
-            Paste a WhatsApp placement message and let the parser do the work.
-          </p>
-        </div>
-      </header>
+    <section className="panel-card form-section">
+      <div className="section-title">
+        <h2>Quick Add</h2>
+        <button className="icon-button" onClick={onClose} aria-label="Close">
+          <X size={16} />
+        </button>
+      </div>
+      <p className="preview-hint">
+        Paste a WhatsApp placement message and let the parser do the work.
+      </p>
 
       {saved && (
         <div className="notice success-notice">
@@ -97,47 +92,42 @@ export function QuickAddPage({
         </div>
       )}
 
-      <section className="panel-card quickadd-input-section">
-        <h2 className="panel-title">
-          <ClipboardPaste size={16} />
-          Paste Message
-        </h2>
-        <textarea
-          className="quickadd-textarea"
-          value={rawMessage}
-          onChange={(e) => {
-            setRawMessage(e.target.value);
-            setParsed(null);
-            setEditForm(null);
-            setSaved(false);
-          }}
-          placeholder="Paste the entire placement WhatsApp message here..."
-          rows={12}
-        />
-        <div className="quickadd-actions">
-          <button className="button secondary" onClick={handlePaste}>
-            <ClipboardPaste size={15} />
-            Paste from Clipboard
-          </button>
-          <button
-            className="button primary"
-            onClick={handleParse}
-            disabled={!rawMessage.trim()}
-          >
-            <Sparkles size={15} />
-            Parse Message
-          </button>
-        </div>
-      </section>
+      <textarea
+        className="quickadd-textarea"
+        value={rawMessage}
+        onChange={(e) => {
+          setRawMessage(e.target.value);
+          setParsed(null);
+          setEditForm(null);
+          setSaved(false);
+        }}
+        placeholder="Paste the entire placement WhatsApp message here..."
+        rows={8}
+      />
+      <div className="quickadd-actions">
+        <button className="button secondary" onClick={handlePaste} type="button">
+          <ClipboardPaste size={15} />
+          Paste from Clipboard
+        </button>
+        <button
+          className="button primary"
+          onClick={handleParse}
+          disabled={!rawMessage.trim()}
+          type="button"
+        >
+          <Sparkles size={15} />
+          Parse Message
+        </button>
+      </div>
 
       {parsed && editForm && (
-        <section className="panel-card quickadd-preview-section">
-          <h2 className="panel-title">
+        <div className="quickadd-preview">
+          <h3 className="panel-title" style={{ marginTop: 20 }}>
             <FileText size={16} />
             Parsed Preview
-          </h2>
+          </h3>
           <p className="preview-hint">
-            Review and edit the extracted data below. Nothing is saved until you click Confirm.
+            Review and edit. Nothing is saved until you click Confirm.
           </p>
           <form className="quickadd-edit-form" onSubmit={(e) => { e.preventDefault(); handleConfirm(); }}>
             <label>
@@ -214,7 +204,7 @@ export function QuickAddPage({
               </button>
             </div>
           </form>
-        </section>
+        </div>
       )}
     </section>
   );

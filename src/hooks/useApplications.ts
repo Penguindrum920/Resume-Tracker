@@ -120,7 +120,12 @@ export function useApplications(session: Session | null) {
         return { data, error: null };
       } catch (err) {
         setBusy(false);
-        return { error: err instanceof Error ? err.message : "Could not save." };
+        if (err && typeof err === "object" && "message" in err) {
+          const msg = (err as { message: string; details?: string; hint?: string }).message;
+          const details = (err as { details?: string }).details;
+          return { error: details ? `${msg}: ${details}` : msg };
+        }
+        return { error: err instanceof Error ? err.message : "Could not save. Check console for details." };
       }
     },
     [session?.user],

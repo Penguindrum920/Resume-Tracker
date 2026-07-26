@@ -15,24 +15,22 @@ import { ApplicationDetail } from "./components/ApplicationDetail";
 import { FilterBar } from "./components/FilterBar";
 import { DeadlineReminders } from "./components/DeadlineReminders";
 import { RecentActivity } from "./components/RecentActivity";
-import { QuickAddPage } from "./components/QuickAddPage";
+import { QuickAddSection } from "./components/QuickAddPage";
 import { ToastContainer } from "./components/ToastContainer";
 import { ConfirmDialog } from "./components/ConfirmDialog";
-import { SkeletonCards, SkeletonStats } from "./components/Skeleton";
+import { SkeletonCards } from "./components/Skeleton";
 import { EmptyState } from "./components/EmptyState";
 import type { ApplicationFormState } from "./lib/validation";
-
-type View = "dashboard" | "quickadd";
 
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", password: "" });
-  const [view, setView] = useState<View>("dashboard");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editingApp, setEditingApp] = useState<ApplicationRow | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ApplicationRow | null>(null);
 
   const { theme, toggleTheme } = useTheme();
@@ -171,7 +169,6 @@ function App() {
 
   function handleNavigateToApp(appId: string) {
     setSelectedId(appId);
-    setView("dashboard");
   }
 
   async function handleConfirmDelete() {
@@ -232,40 +229,28 @@ function App() {
           setSession(null);
           setProfile(null);
         }}
-        view={view}
-        setView={(v) => {
-          setView(v);
-          setEditingApp(null);
-          setShowForm(false);
-        }}
         theme={theme}
         toggleTheme={toggleTheme}
         busy={apps.busy}
         email={session.user.email ?? ""}
       />
 
-      {view === "quickadd" ? (
-        <QuickAddPage
-          onBack={() => setView("dashboard")}
-          onCreateApplication={handleCreateApplication}
-          busy={apps.busy}
-        />
-      ) : (
-        <DashboardView
-          apps={apps}
-          selectedId={selectedId}
-          setSelectedId={setSelectedId}
-          selectedApplication={selectedApplication}
-          editingApp={editingApp}
-          setEditingApp={setEditingApp}
-          showForm={showForm}
-          setShowForm={setShowForm}
-          onCreateApplication={handleCreateApplication}
-          onUpdateApplication={handleUpdateApplication}
-          onDeleteFromDetail={handleDeleteFromDetail}
-          navigateToApp={handleNavigateToApp}
-        />
-      )}
+      <DashboardView
+        apps={apps}
+        selectedId={selectedId}
+        setSelectedId={setSelectedId}
+        selectedApplication={selectedApplication}
+        editingApp={editingApp}
+        setEditingApp={setEditingApp}
+        showForm={showForm}
+        setShowForm={setShowForm}
+        showQuickAdd={showQuickAdd}
+        setShowQuickAdd={setShowQuickAdd}
+        onCreateApplication={handleCreateApplication}
+        onUpdateApplication={handleUpdateApplication}
+        onDeleteFromDetail={handleDeleteFromDetail}
+        navigateToApp={handleNavigateToApp}
+      />
 
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
 
@@ -289,6 +274,8 @@ function DashboardView({
   setEditingApp,
   showForm,
   setShowForm,
+  showQuickAdd,
+  setShowQuickAdd,
   onCreateApplication,
   onUpdateApplication,
   onDeleteFromDetail,
@@ -302,6 +289,8 @@ function DashboardView({
   setEditingApp: (app: ApplicationRow | null) => void;
   showForm: boolean;
   setShowForm: (show: boolean) => void;
+  showQuickAdd: boolean;
+  setShowQuickAdd: (show: boolean) => void;
   onCreateApplication: (
     form: ApplicationFormState,
     files: { screenshot?: File | null; resume?: File | null },
@@ -338,9 +327,20 @@ function DashboardView({
           onClick={() => {
             setShowForm(!showForm);
             setEditingApp(null);
+            setShowQuickAdd(false);
           }}
         >
           + New Application
+        </button>
+        <button
+          className={`action-btn ${showQuickAdd ? "active" : ""}`}
+          onClick={() => {
+            setShowQuickAdd(!showQuickAdd);
+            setShowForm(false);
+            setEditingApp(null);
+          }}
+        >
+          Quick Add
         </button>
       </div>
 
@@ -353,6 +353,14 @@ function DashboardView({
             busy={apps.busy}
           />
         </section>
+      )}
+
+      {showQuickAdd && (
+        <QuickAddSection
+          onCreateApplication={onCreateApplication}
+          busy={apps.busy}
+          onClose={() => setShowQuickAdd(false)}
+        />
       )}
 
       {editingApp && (
