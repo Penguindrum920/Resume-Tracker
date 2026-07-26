@@ -83,14 +83,19 @@ function App() {
       let profileData = profileResult.data;
 
       if (!profileData) {
+        let pending: { full_name: string; username: string; email: string } | null = null;
+        try {
+          const raw = localStorage.getItem("resume-tracker-pending-profile");
+          if (raw) { pending = JSON.parse(raw); localStorage.removeItem("resume-tracker-pending-profile"); }
+        } catch {}
         const meta = session.user.user_metadata ?? {};
         const { data: created } = await supabase
           .from("profiles")
           .upsert({
             id: session.user.id,
-            full_name: meta.full_name || session.user.email?.split("@")[0] || "User",
-            username: meta.username || null,
-            email: session.user.email || null,
+            full_name: pending?.full_name || meta.full_name || session.user.email?.split("@")[0] || "User",
+            username: pending?.username || meta.username || null,
+            email: pending?.email || session.user.email || null,
           })
           .select("*")
           .single();
@@ -198,13 +203,18 @@ function App() {
             return;
           }
           if (authMode === "signup" && result.data.user) {
+            const profileData = {
+              full_name: authForm.fullName.trim() || authForm.email.trim().split("@")[0],
+              username: authForm.username.toLowerCase(),
+              email: authForm.email.trim().toLowerCase(),
+            };
             if (result.data.session) {
               await supabase.from("profiles").upsert({
                 id: result.data.user.id,
-                full_name: authForm.fullName.trim() || authForm.email.trim().split("@")[0],
-                username: authForm.username.toLowerCase(),
-                email: authForm.email.trim().toLowerCase(),
+                ...profileData,
               });
+            } else {
+              try { localStorage.setItem("resume-tracker-pending-profile", JSON.stringify(profileData)); } catch {}
             }
           }
           if (!result.data.session && authMode === "signup") {
