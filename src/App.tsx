@@ -79,12 +79,30 @@ function App() {
           .order("created_at", { ascending: false }),
       ]);
       if (cancelled) return;
-      if (profileResult.data) {
-        setProfile(profileResult.data);
+
+      let profileData = profileResult.data;
+
+      if (!profileData) {
+        const meta = session.user.user_metadata ?? {};
+        const { data: created } = await supabase
+          .from("profiles")
+          .upsert({
+            id: session.user.id,
+            full_name: meta.full_name || session.user.email?.split("@")[0] || "User",
+            username: meta.username || null,
+            email: session.user.email || null,
+          })
+          .select("*")
+          .single();
+        profileData = created;
+      }
+
+      if (profileData) {
+        setProfile(profileData);
         setProfileForm({
-          fullName: profileResult.data.full_name,
-          role: profileResult.data.role ?? "",
-          location: profileResult.data.location ?? "",
+          fullName: profileData.full_name,
+          role: profileData.role ?? "",
+          location: profileData.location ?? "",
         });
       }
       if (applicationResult.data) {
