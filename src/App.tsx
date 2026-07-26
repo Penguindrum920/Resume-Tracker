@@ -101,18 +101,23 @@ function App() {
           .select("*")
           .single();
         profileData = created;
-      } else if (!profileData.username || !profileData.email) {
-        const { data: updated } = await supabase
-          .from("profiles")
-          .update({
-            username: profileData.username || pending?.username || meta.username || null,
-            email: profileData.email || pending?.email || session.user.email || null,
-            full_name: profileData.full_name || pending?.full_name || meta.full_name || null,
-          })
-          .eq("id", session.user.id)
-          .select("*")
-          .single();
-        if (updated) profileData = updated;
+      } else {
+        const patch: { username?: string; email?: string; full_name?: string } = {};
+        const newUsername = pending?.username || meta.username || undefined;
+        const newEmail = pending?.email || session.user.email || undefined;
+        const newFullName = pending?.full_name || meta.full_name || undefined;
+        if (newUsername && !profileData.username) patch.username = newUsername;
+        if (newEmail && !profileData.email) patch.email = newEmail;
+        if (newFullName && !profileData.full_name) patch.full_name = newFullName;
+        if (Object.keys(patch).length > 0) {
+          const { data: updated } = await supabase
+            .from("profiles")
+            .update(patch)
+            .eq("id", session.user.id)
+            .select("*")
+            .single();
+          if (updated) profileData = updated;
+        }
       }
 
       if (profileData) {
