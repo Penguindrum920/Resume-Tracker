@@ -198,7 +198,9 @@ function App() {
             }
           }
           if (!result.data.session && authMode === "signup") {
-            toast.info("Check your email to confirm, then sign in.");
+            toast.info("Account created! Check your email to confirm, then sign in.");
+            setAuthMode("signin");
+            setAuthForm({ fullName: "", username: "", email: authForm.email, password: "" });
           }
         }}
       />
