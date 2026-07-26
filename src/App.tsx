@@ -163,15 +163,21 @@ function App() {
               "get_email_by_username",
               { username_input: loginEmail.toLowerCase() },
             );
-            if (lookupErr || !lookup) {
+            if (lookupErr) {
+              toast.error("Lookup failed: " + lookupErr.message);
+              return;
+            }
+            let resolved: string | null = null;
+            if (Array.isArray(lookup)) resolved = lookup[0] ?? null;
+            else if (typeof lookup === "string") resolved = lookup;
+            else if (lookup && typeof lookup === "object") resolved = String(Object.values(lookup)[0] ?? "");
+            else if (lookup != null) resolved = String(lookup);
+
+            if (!resolved || !resolved.includes("@")) {
               toast.error("No account found with that username.");
               return;
             }
-            loginEmail = Array.isArray(lookup) ? lookup[0] : (lookup as string);
-            if (!loginEmail) {
-              toast.error("No account found with that username.");
-              return;
-            }
+            loginEmail = resolved;
           }
 
           const creds = { email: loginEmail, password: authForm.password };
