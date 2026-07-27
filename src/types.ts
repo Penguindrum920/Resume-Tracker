@@ -43,6 +43,32 @@ export type ApplicationRow = {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  screenshots?: ApplicationScreenshotRow[];
+};
+
+export type ApplicationScreenshotRow = {
+  id: string;
+  application_id: string;
+  user_id: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type UserIntegrationRow = {
+  id: string;
+  user_id: string;
+  provider: string;
+  provider_account_email: string | null;
+  spreadsheet_id: string;
+  connected_at: string;
+  last_sync_at: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Database = {
@@ -80,6 +106,50 @@ export type Database = {
           notes?: string | null;
         };
         Update: Partial<Omit<ApplicationRow, "id" | "user_id" | "created_at">>;
+        Relationships: [];
+      };
+      application_screenshots: {
+        Row: ApplicationScreenshotRow;
+        Insert: {
+          id?: string;
+          application_id: string;
+          user_id: string;
+          storage_path: string;
+          file_name: string;
+          file_size: number;
+          mime_type: string;
+          display_order?: number;
+        };
+        Update: Partial<Omit<ApplicationScreenshotRow, "id" | "application_id" | "user_id" | "created_at">>;
+        Relationships: [
+          {
+            foreignKeyName: "application_screenshots_application_id_fkey";
+            columns: ["application_id"];
+            isOneToOne: false;
+            referencedRelation: "applications";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "application_screenshots_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_integrations: {
+        Row: UserIntegrationRow;
+        Insert: {
+          id?: string;
+          user_id: string;
+          provider: string;
+          provider_account_email?: string | null;
+          spreadsheet_id: string;
+          connected_at?: string;
+          last_sync_at?: string | null;
+        };
+        Update: Partial<Omit<UserIntegrationRow, "id" | "user_id" | "created_at">>;
         Relationships: [];
       };
     };

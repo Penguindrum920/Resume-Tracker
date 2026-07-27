@@ -3,6 +3,7 @@ import {
   BriefcaseBusiness,
   Check,
   LogOut,
+  Settings2,
   UserRound,
 } from "lucide-react";
 import type { ProfileRow } from "../types";
@@ -14,6 +15,7 @@ export function Sidebar({
   setProfileForm,
   onSaveProfile,
   onSignOut,
+  onOpenSettings,
   theme,
   toggleTheme,
   busy,
@@ -26,6 +28,7 @@ export function Sidebar({
   >;
   onSaveProfile: (e: FormEvent<HTMLFormElement>) => void;
   onSignOut: () => void;
+  onOpenSettings: () => void;
   theme: "light" | "dark";
   toggleTheme: () => void;
   busy: boolean;
@@ -101,6 +104,13 @@ export function Sidebar({
       <div className="account-strip">
         <span>{email}</span>
         <div className="account-actions">
+          <button
+            className="icon-button"
+            onClick={onOpenSettings}
+            aria-label="Settings"
+          >
+            <Settings2 size={17} />
+          </button>
           <ThemeToggle theme={theme} onToggle={toggleTheme} />
           <button className="icon-button" onClick={onSignOut} aria-label="Sign out">
             <LogOut size={17} />

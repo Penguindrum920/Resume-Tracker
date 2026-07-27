@@ -1,6 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { BriefcaseBusiness } from "lucide-react";
+import { BriefcaseBusiness, Download, Settings2 } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "./lib/supabase";
 import { useTheme } from "./hooks/useTheme";
 import { useToast } from "./hooks/useToast";
@@ -20,6 +20,8 @@ import { ToastContainer } from "./components/ToastContainer";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { SkeletonCards } from "./components/Skeleton";
 import { EmptyState } from "./components/EmptyState";
+import { SettingsPage } from "./components/SettingsPage";
+import { exportApplications } from "./lib/export";
 import type { ApplicationFormState } from "./lib/validation";
 
 function App() {
@@ -34,6 +36,7 @@ function App() {
   const [deleteTarget, setDeleteTarget] = useState<ApplicationRow | null>(null);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const toast = useToast();
@@ -294,7 +297,7 @@ function App() {
 
   async function handleCreateApplication(
     form: ApplicationFormState,
-    files: { screenshot?: File | null; resume?: File | null },
+    files: { screenshots?: File[]; resume?: File | null },
   ) {
     const result = await apps.createApplication(form, files);
     if (result.error) {
@@ -309,10 +312,10 @@ function App() {
 
   async function handleUpdateApplication(
     form: ApplicationFormState,
-    _files: { screenshot?: File | null; resume?: File | null },
+    files: { screenshots?: File[]; resume?: File | null; existingScreenshotIds?: string[] },
   ) {
     if (!editingApp) return { error: "No application selected" };
-    const result = await apps.updateApplication(editingApp.id, form);
+    const result = await apps.updateApplication(editingApp.id, form, files);
     if (result.error) {
       toast.error(result.error);
     } else {
@@ -338,6 +341,7 @@ function App() {
           setSession(null);
           setProfile(null);
         }}
+        onOpenSettings={() => setShowSettings(true)}
         theme={theme}
         toggleTheme={toggleTheme}
         busy={apps.busy}
@@ -359,6 +363,7 @@ function App() {
         onUpdateApplication={handleUpdateApplication}
         onDeleteFromDetail={handleDeleteFromDetail}
         navigateToApp={handleNavigateToApp}
+        onShowSettings={() => setShowSettings(true)}
       />
 
       <ToastContainer toasts={toast.toasts} onRemove={toast.removeToast} />
@@ -369,6 +374,16 @@ function App() {
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteTarget(null)}
         />
+      )}
+
+      {showSettings && (
+        <div className="dialog-overlay" onClick={() => setShowSettings(false)}>
+          <SettingsPage
+            applications={apps.applications}
+            session={session}
+            onClose={() => setShowSettings(false)}
+          />
+        </div>
       )}
 
       {showPasswordReset && (
@@ -446,6 +461,7 @@ function DashboardView({
   onUpdateApplication,
   onDeleteFromDetail,
   navigateToApp,
+  onShowSettings,
 }: {
   apps: ReturnType<typeof useApplications>;
   selectedId: string | null;
@@ -459,15 +475,27 @@ function DashboardView({
   setShowQuickAdd: (show: boolean) => void;
   onCreateApplication: (
     form: ApplicationFormState,
-    files: { screenshot?: File | null; resume?: File | null },
+    files: { screenshots?: File[]; resume?: File | null },
   ) => Promise<{ error: string | null }>;
   onUpdateApplication: (
     form: ApplicationFormState,
-    files: { screenshot?: File | null; resume?: File | null },
+    files: { screenshots?: File[]; resume?: File | null; existingScreenshotIds?: string[] },
   ) => Promise<{ error: string | null }>;
   onDeleteFromDetail: (app: ApplicationRow) => void;
   navigateToApp: (id: string) => void;
+  onShowSettings: () => void;
 }) {
+  const [exportBusy, setExportBusy] = useState(false);
+
+  async function handleQuickExport() {
+    setExportBusy(true);
+    try {
+      await exportApplications({ applications: apps.applications, format: "xlsx" });
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+    setExportBusy(false);
+  }
   return (
     <section className="workspace">
       <header className="topbar">
@@ -517,6 +545,21 @@ function DashboardView({
         >
           Quick Add
         </button>
+        <button
+          className="action-btn"
+          onClick={handleQuickExport}
+          disabled={exportBusy || apps.applications.length === 0}
+        >
+          <Download size={15} />
+          Export All
+        </button>
+        <button
+          className="action-btn"
+          onClick={onShowSettings}
+        >
+          <Settings2 size={15} />
+          Settings
+        </button>
       </div>
 
       {showForm && !editingApp && (
@@ -538,7 +581,7 @@ function DashboardView({
         />
       )}
 
-      {editingApp && (
+{editingApp && (
         <section className="panel-card form-section">
           <h2 className="panel-title">Edit Application</h2>
           <ApplicationForm
